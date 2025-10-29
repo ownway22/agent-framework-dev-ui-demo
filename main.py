@@ -10,5 +10,5 @@ workflow = get_workflow()
 magentic_workflow = get_magentic_workflow()
 
 # Launch debug UI - that's it!
-serve(entities=[agent, workflow, magentic_workflow], auto_open=False)
+serve(entities=[agent, workflow, magentic_workflow], auto_open=True)
 # → Opens browser to http://localhost:8080

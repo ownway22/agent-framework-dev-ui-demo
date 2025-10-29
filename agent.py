@@ -16,8 +16,6 @@ def get_weather(
     return f"The weather in {location} is {conditions[randrange(0, len(conditions))]} and {randrange(-10, 30)}°C."
 
 
-# Define a simple weather tool that requires approval
-@ai_function(name="get_weather_detail")
 def get_weather_detail(
     location: Annotated[str, "The city and state, e.g. San Francisco, CA"],
 ) -> str:
