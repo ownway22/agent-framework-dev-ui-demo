@@ -1,0 +1,19 @@
+[project]
+name = "af"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+dependencies = [
+    "agent-framework",
+    "ruff>=0.13.3",
+]
+
+[tool.uv.sources]
+agent-framework = { git = "https://github.com/microsoft/agent-framework", subdirectory = "python", rev = "main" }
+agent-framework-core = { git = "https://github.com/microsoft/agent-framework", subdirectory = "python", rev = "main" }
+agent-framework-a2a = { git = "https://github.com/microsoft/agent-framework", subdirectory = "python", rev = "main" }
+agent-framework-azure-ai = { git = "https://github.com/microsoft/agent-framework", subdirectory = "python", rev = "main" }
+agent-framework-copilotstudio = { git = "https://github.com/microsoft/agent-framework", subdirectory = "python", rev = "main" }
+agent-framework-mem0 = { git = "https://github.com/microsoft/agent-framework", subdirectory = "python", rev = "main" }
+agent-framework-redis = { git = "https://github.com/microsoft/agent-framework", subdirectory = "python", rev = "main" }
+agent-framework-devui = { git = "https://github.com/microsoft/agent-framework", subdirectory = "python", rev = "main" }
