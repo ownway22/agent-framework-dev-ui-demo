@@ -1,6 +1,6 @@
 # 🤖 Agent Framework Dev UI Demo
 
-這是一個使用 Microsoft [Agent Framework](https://github.com/microsoft/agent-framework) 構建的範例專案，展示了如何建立 agent (Agents)、工作流 (Workflows) 以及更複雜的 Magentic 工作流。
+這是一個使用 Microsoft [Agent Framework](https://github.com/microsoft/agent-framework) 構建的範例專案，展示了如何建立 Agents、Workflows 以及更複雜的 Magentic 工作流。
 
 ## 📂 專案結構
 
