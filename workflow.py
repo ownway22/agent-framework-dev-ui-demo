@@ -52,15 +52,18 @@ CURRENT_EMAIL_ID_KEY = "current_email_id"
 LONG_EMAIL_THRESHOLD = 100
 
 
+# 定義分析結果模型 (Analysis Result Model)
 class AnalysisResultAgent(BaseModel):
     spam_decision: Literal["NotSpam", "Spam", "Uncertain"]
     reason: str
 
 
+# 定義郵件回覆模型 (Email Response Model)
 class EmailResponse(BaseModel):
     response: str
 
 
+# 定義郵件摘要模型 (Email Summary Model)
 class EmailSummaryModel(BaseModel):
     summary: str
 
@@ -87,10 +90,13 @@ class DatabaseEvent(WorkflowEvent): ...
 async def store_email(
     email_text: str, ctx: WorkflowContext[AgentExecutorRequest]
 ) -> None:
+    # 儲存郵件內容並生成唯一 ID
     new_email = Email(email_id=str(uuid4()), email_content=email_text)
+    # 將郵件物件存入共享狀態 (Shared State)
     await ctx.set_shared_state(f"{EMAIL_STATE_PREFIX}{new_email.email_id}", new_email)
     await ctx.set_shared_state(CURRENT_EMAIL_ID_KEY, new_email.email_id)
 
+    # 發送訊息給下一個執行者
     await ctx.send_message(
         AgentExecutorRequest(
             messages=[ChatMessage(Role.USER, text=new_email.email_content)],
@@ -103,6 +109,7 @@ async def store_email(
 async def to_analysis_result(
     response: AgentExecutorResponse, ctx: WorkflowContext[AnalysisResult]
 ) -> None:
+    # 將 agent 的回應轉換為 AnalysisResult 物件
     parsed = cast(AnalysisResult, response.agent_run_response.value)
     email_id: str = await ctx.get_shared_state(CURRENT_EMAIL_ID_KEY)
     email: Email = await ctx.get_shared_state(f"{EMAIL_STATE_PREFIX}{email_id}")
@@ -121,12 +128,14 @@ async def to_analysis_result(
 async def submit_to_email_assistant(
     analysis: AnalysisResult, ctx: WorkflowContext[AgentExecutorRequest]
 ) -> None:
+    # 確保只處理非垃圾郵件 (NotSpam)
     if analysis.spam_decision != "NotSpam":
         raise RuntimeError("This executor should only handle NotSpam messages.")
 
     email: Email = await ctx.get_shared_state(
         f"{EMAIL_STATE_PREFIX}{analysis.email_id}"
     )
+    # 將郵件內容發送給 EmailAssistantAgent
     await ctx.send_message(
         AgentExecutorRequest(
             messages=[ChatMessage(Role.USER, text=email.email_content)],
@@ -139,6 +148,7 @@ async def submit_to_email_assistant(
 async def finalize_and_send(
     response: AgentExecutorResponse, ctx: WorkflowContext[Never, str]
 ) -> None:
+    # 輸出最終生成的郵件回覆
     await ctx.yield_output(
         f"Email sent: {cast(EmailResponse, response.agent_run_response.value).response}"
     )
@@ -148,10 +158,11 @@ async def finalize_and_send(
 async def summarize_email(
     analysis: AnalysisResult, ctx: WorkflowContext[AgentExecutorRequest]
 ) -> None:
-    # Only called for long NotSpam emails by selection_func
+    # 僅針對較長的非垃圾郵件調用此執行者 (由 selection_func 決定)
     email: Email = await ctx.get_shared_state(
         f"{EMAIL_STATE_PREFIX}{analysis.email_id}"
     )
+    # 將郵件內容發送給 EmailSummaryAgent
     await ctx.send_message(
         AgentExecutorRequest(
             messages=[ChatMessage(Role.USER, text=email.email_content)],
@@ -167,7 +178,7 @@ async def merge_summary(
     summary = cast(EmailSummaryModel, response.agent_run_response.value)
     email_id: str = await ctx.get_shared_state(CURRENT_EMAIL_ID_KEY)
     email: Email = await ctx.get_shared_state(f"{EMAIL_STATE_PREFIX}{email_id}")
-    # Build an AnalysisResult mirroring to_analysis_result but with summary
+    # 建立一個包含摘要的 AnalysisResult，類似於 to_analysis_result
     await ctx.send_message(
         AnalysisResult(
             spam_decision="NotSpam",
@@ -183,6 +194,7 @@ async def merge_summary(
 async def handle_spam(
     analysis: AnalysisResult, ctx: WorkflowContext[Never, str]
 ) -> None:
+    # 處理垃圾郵件
     if analysis.spam_decision == "Spam":
         await ctx.yield_output(f"Email marked as spam: {analysis.reason}")
     else:
@@ -193,6 +205,7 @@ async def handle_spam(
 async def handle_uncertain(
     analysis: AnalysisResult, ctx: WorkflowContext[Never, str]
 ) -> None:
+    # 處理不確定的郵件
     if analysis.spam_decision == "Uncertain":
         email: Email | None = await ctx.get_shared_state(
             f"{EMAIL_STATE_PREFIX}{analysis.email_id}"
@@ -208,7 +221,7 @@ async def handle_uncertain(
 async def database_access(
     analysis: AnalysisResult, ctx: WorkflowContext[Never, str]
 ) -> None:
-    # Simulate DB writes for email and analysis (and summary if present)
+    # 模擬資料庫寫入操作 (Simulate DB writes)
     await asyncio.sleep(0.05)
     await ctx.add_event(DatabaseEvent(f"Email {analysis.email_id} saved to database."))
 
@@ -217,6 +230,7 @@ def get_workflow() -> Workflow:
     # Agents
     chat_client = OpenAIResponsesClient()
 
+    # 郵件分析 agent (EmailAnalysisAgent)
     email_analysis_agent = AgentExecutor(
         chat_client.create_agent(
             name="EmailAnalysisAgent",
@@ -234,6 +248,7 @@ def get_workflow() -> Workflow:
         id="email_analysis_agent",
     )
 
+    # 郵件助理 agent (EmailAssistantAgent)
     email_assistant_agent = AgentExecutor(
         chat_client.create_agent(
             name="EmailAssistantAgent",
@@ -245,6 +260,7 @@ def get_workflow() -> Workflow:
         id="email_assistant_agent",
     )
 
+    # 郵件摘要 agent (EmailSummaryAgent)
     email_summary_agent = AgentExecutor(
         chat_client.create_agent(
             name="EmailSummaryAgent",
@@ -254,9 +270,9 @@ def get_workflow() -> Workflow:
         id="email_summary_agent",
     )
 
-    # Build the workflow
+    # 構建工作流 (Build the workflow)
     def select_targets(analysis: AnalysisResult, target_ids: list[str]) -> list[str]:
-        # Order: [handle_spam, submit_to_email_assistant, summarize_email, handle_uncertain]
+        # 順序: [handle_spam, submit_to_email_assistant, summarize_email, handle_uncertain]
         (
             handle_spam_id,
             submit_to_email_assistant_id,
@@ -267,6 +283,7 @@ def get_workflow() -> Workflow:
             return [handle_spam_id]
         if analysis.spam_decision == "NotSpam":
             targets = [submit_to_email_assistant_id]
+            # 如果郵件長度超過閾值，則同時進行摘要
             if analysis.email_length > LONG_EMAIL_THRESHOLD:
                 targets.append(summarize_email_id)
             return targets
@@ -280,6 +297,7 @@ def get_workflow() -> Workflow:
         .set_start_executor(store_email)
         .add_edge(store_email, email_analysis_agent)
         .add_edge(email_analysis_agent, to_analysis_result)
+        # 添加多重選擇邊緣群組 (Multi-Selection Edge Group)
         .add_multi_selection_edge_group(
             to_analysis_result,
             [handle_spam, submit_to_email_assistant, summarize_email, handle_uncertain],
@@ -289,14 +307,14 @@ def get_workflow() -> Workflow:
         .add_edge(email_assistant_agent, finalize_and_send)
         .add_edge(summarize_email, email_summary_agent)
         .add_edge(email_summary_agent, merge_summary)
-        # Save to DB if short (no summary path)
+        # 如果郵件較短且非垃圾郵件，則存入資料庫 (無摘要路徑)
         .add_edge(
             to_analysis_result,
             database_access,
             condition=lambda r: r.email_length <= LONG_EMAIL_THRESHOLD
             and r.spam_decision != "Spam",
         )
-        # Save to DB with summary when long
+        # 如果郵件較長，則在合併摘要後存入資料庫
         .add_edge(merge_summary, database_access)
         .build()
     )

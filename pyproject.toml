@@ -1,8 +1,12 @@
 [project]
-name = "af"
+name = "agent-framework-dev-ui-demo"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Yu-Hong Lin", email = "yu-hong.lin@microsoft.com" }
+]
 dependencies = [
     "agent-framework",
     "ruff>=0.13.3",
