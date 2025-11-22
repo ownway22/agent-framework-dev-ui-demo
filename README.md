@@ -94,6 +94,7 @@ python main.py
 
 ## 📚 參考資源
 
-* [Introducing Microsoft Agent Framework](https://azure.microsoft.com/en-us/blog/introducing-microsoft-agent-framework/)
-* [Quick Start Tutorial](https://learn.microsoft.com/en-us/agent-framework/tutorials/quick-start?pivots=programming-language-python)
-* [GitHub Repository](https://github.com/microsoft/agent-framework)
+* [Introducing Microsoft Agent Framework | Microsoft Azure Blog](https://azure.microsoft.com/en-us/blog/introducing-microsoft-agent-framework/)
+* [Microsoft Agent Framework Quick Start | Microsoft Learn](https://learn.microsoft.com/en-us/agent-framework/tutorials/quick-start?pivots=programming-language-python)
+* [Microsoft Agent Framework documentation | Microsoft Learn](https://learn.microsoft.com/en-us/agent-framework/)
+* [microsoft/agent-framework: A framework for building, orchestrating and deploying AI agents and multi-agent workflows | GitHub](https://github.com/microsoft/agent-framework)
